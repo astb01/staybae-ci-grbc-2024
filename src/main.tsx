@@ -10,6 +10,11 @@ import { FavouriteContextProvider } from './context/FavouritesContext';
 const siteBaseName =
   process.env.NODE_ENV !== 'development' ? '/staybae-ci-grbc-2024/' : '/';
 
+const mockWorkerUrl =
+  process.env.NODE_ENV !== 'development'
+    ? '/staybae-ci-grbc-2024/mockServiceWorker.js'
+    : '/mockServiceWorker.js';
+
 async function enableMocking() {
   // if (process.env.NODE_ENV !== 'development') {
   //   return;
@@ -21,10 +26,7 @@ async function enableMocking() {
   // once the Service Worker is up and ready to intercept requests.
   return worker.start({
     serviceWorker: {
-      url:
-        process.env.NODE_ENV !== 'development'
-          ? '/staybae-ui/mockServiceWorker.js'
-          : '/mockServiceWorker.js',
+      url: mockWorkerUrl,
     },
     onUnhandledRequest: 'bypass',
   });
