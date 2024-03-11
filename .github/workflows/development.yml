@@ -1,0 +1,106 @@
+name: Development Pipeline
+run-name: 'Build: ${{ github.ref_name }}'
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    strategy:
+      matrix:
+        node-version: [18.x]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Install Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
+      - run: npm run lint
+
+  test:
+    strategy:
+      matrix:
+        node-version: [18.x]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Install Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
+      - run: npm run test:unit
+
+  #   verify:
+  #     strategy:
+  #       matrix:
+  #         node-version: [18.x]
+  #     runs-on: ubuntu-latest
+  #     env:
+  #       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  #     steps:
+  #       - name: Checkout Code
+  #         uses: actions/checkout@v3
+  #       - name: Install Node ${{ matrix.node-version }}
+  #         uses: actions/setup-node@v2
+  #         with:
+  #           node-version: ${{ matrix.node-version }}
+  #       - run: npm install
+  #       - run: npm -g install snyk
+  #       - run: snyk test
+  #       - run: snyk monitor
+
+  build:
+    strategy:
+      matrix:
+        node-version: [18.x]
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    outputs:
+      CURRENT_TAG: ${{steps.build_version.outputs.current_tag}}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Get current tag
+        id: build_version
+        run: echo "current_tag=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_OUTPUT
+
+      - name: Install Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: sed -i 's/%%APP_VERSION%%/${{steps.build_version.outputs.current_tag}}-wip/g' src/config/AppVersion.tsx
+      - run: npm ci
+      - run: npm run build
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push image to Docker
+        uses: docker/build-push-action@v4
+        with:
+          context: ./
+          push: true
+          tags: astb01/staybae-ci-cd:${{steps.build_version.outputs.current_tag}}-wip

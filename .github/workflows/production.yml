@@ -1,0 +1,115 @@
+name: Production Pipeline
+run-name: 'Build: production :rocket'
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    strategy:
+      matrix:
+        node-version: [18.x]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Install Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
+      - run: npm run lint
+
+  test:
+    strategy:
+      matrix:
+        node-version: [18.x]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Install Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
+      - run: npm run test:unit
+
+  build:
+    strategy:
+      matrix:
+        node-version: [18.x]
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    outputs:
+      NEXT_TAG: ${{steps.build_version.outputs.new_tag}}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Bump version and push tag
+        id: build_version
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: sed -i 's/%%APP_VERSION%%/${{steps.build_version.outputs.new_tag}}/g' src/config/AppVersion.tsx
+      - run: npm ci
+      - run: npm run build
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push image to Docker
+        uses: docker/build-push-action@v4
+        with:
+          context: ./
+          push: true
+          tags: astb01/staybae-ci-cd:${{steps.build_version.outputs.new_tag}}
+
+  # Deploy Job
+  deploy:
+    needs: [build]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: sed -i 's/%%APP_VERSION%%/${{needs.build.outputs.NEXT_TAG}}/g' src/config/AppVersion.tsx
+      - run: npm ci
+      - run: npm run build
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Upload Staybae
+        uses: actions/upload-pages-artifact@v2
+        with:
+          # Upload from dist directory
+          path: './dist'
+      - name: Deploy to Github Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
