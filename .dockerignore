@@ -1,0 +1,17 @@
+# Version control
+.git
+.gitignore
+
+# Build dependencies
+dist
+build
+node_modules
+coverage
+
+# Environment files
+.env*
+
+# Files not needed for production
+.editorconfig
+Dockerfile
+README.md
