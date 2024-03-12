@@ -18,11 +18,6 @@ type PropertyType = {
   heroImg: string;
   images: string[];
   favourited?: boolean;
-}
-
-// extending PropertyType
-type MansionType = {
-  cinemaRooms: number;
-} & PropertyType;
+};
 
 export default PropertyType;
