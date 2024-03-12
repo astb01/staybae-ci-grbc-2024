@@ -10,6 +10,7 @@ import Home from 'src/pages/home/Home';
 import PropertyDetails from 'src/pages/details/PropertyDetails';
 import Search from 'src/pages/search/Search';
 import NotFound from 'src/pages/404/NotFound';
+import MakeBooking from './pages/booking/MakeBooking';
 
 const progress = new ProgressBar({
   size: 4,
@@ -40,6 +41,7 @@ function App() {
             <Route path="/home" element={<Home />} />
             <Route path="/property/:id" element={<PropertyDetails />} />
             <Route path="/search" element={<Search />} />
+            <Route path="/book" element={<MakeBooking />} />
             <Route path="/page-not-found" element={<NotFound />} />
             <Route
               path="*"
@@ -47,7 +49,9 @@ function App() {
             />
           </Route>
         </Routes>
-        <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
+        {process.env.NODE_ENV === 'development' && (
+          <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
+        )}
       </QueryClientProvider>
     </>
   );

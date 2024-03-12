@@ -14,7 +14,7 @@ import {
   UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import LoadingImage from 'src/assets/images/loading-image.gif';
 import Rating from 'src/components/rating/Rating';
 import useFavourite from 'src/hooks/useFavourite';
@@ -28,6 +28,7 @@ const PropertyDetails = () => {
   const [currentImageSrc, setCurrentImageSrc] = useState<string>('');
 
   const loadedImage = useProgressiveImage(currentImageSrc);
+  const navigate = useNavigate();
 
   const { id } = useParams();
   const { isFavourite, addFavourite, removeFavourite } = useFavourite();
@@ -81,49 +82,53 @@ const PropertyDetails = () => {
 
   return (
     <main className="max-w-full px-8 sm:px-16 ml-16 mr-16">
-      <div className="flex justify-between ml-4">
-        <div className="my-10 w-full md:w-2/3">
-          <div className="text-xl md:text-2xl font-semibold">
-            {data?.description}
-          </div>
-          <div className="flex flex-row justify-between">
-            <div className="flex flex-row items-center">
-              {data && (
-                <Rating
-                  doSingle={true}
-                  id={data?._id}
-                  ratingScore={data.rating}
-                  propertyRating={data.rating}
-                />
-              )}
-              <span className="m-2">&bull;</span>
-              <span className="text-sm mx-2">{data?.numVotes} votes</span>
-              <span className="m-2">&bull;</span>
-              <span className="text-sm mx-2">
-                {data?.city}, {data?.country}
-              </span>
-            </div>
+      {!data && <div>Loading ....</div>}
 
-            {propertyIsSaved ? (
-              <div
-                className="flex flex-row items-center cursor-pointer"
-                onClick={toggleSave}
-                title="Click to unsave">
-                <FavouritedHeartIcon className="h-6" color="red" />
-                <span className="text-sm ml-2">Saved</span>
+      {data && (
+        <div className="flex justify-between ml-4">
+          <div className="my-10 w-full md:w-2/3">
+            <div className="text-xl md:text-2xl font-semibold">
+              {data.description}
+            </div>
+            <div className="flex flex-row justify-between">
+              <div className="flex flex-row items-center">
+                {data && (
+                  <Rating
+                    doSingle={true}
+                    id={data?._id}
+                    ratingScore={data.rating}
+                    propertyRating={data.rating}
+                  />
+                )}
+                <span className="m-2">&bull;</span>
+                <span className="text-sm mx-2">{data?.numVotes} votes</span>
+                <span className="m-2">&bull;</span>
+                <span className="text-sm mx-2">
+                  {data?.city}, {data?.country}
+                </span>
               </div>
-            ) : (
-              <div
-                className="flex flex-row items-center cursor-pointer"
-                onClick={toggleSave}
-                title="Click to save">
-                <NotFavouritedHeartIcon className="h-6" />
-                <span className="text-sm ml-2">Save</span>
-              </div>
-            )}
+
+              {propertyIsSaved ? (
+                <div
+                  className="flex flex-row items-center cursor-pointer"
+                  onClick={toggleSave}
+                  title="Click to unsave">
+                  <FavouritedHeartIcon className="h-6" color="red" />
+                  <span className="text-sm ml-2">Saved</span>
+                </div>
+              ) : (
+                <div
+                  className="flex flex-row items-center cursor-pointer"
+                  onClick={toggleSave}
+                  title="Click to save">
+                  <NotFavouritedHeartIcon className="h-6" />
+                  <span className="text-sm ml-2">Save</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="flex md:justify-start justify-center">
         <div className="max-w-[1400px] w-full h-[700px] md:w-2/3 py-4 px-4 relative group">
@@ -180,7 +185,11 @@ const PropertyDetails = () => {
               )}
             </div>
 
-            <button className="bg-pink-600 text-white w-full rounded-lg py-3 mt-10 hover:bg-pink-400">
+            <button
+              onClick={() =>
+                navigate('/book', { state: { propertyDetails: data } })
+              }
+              className="bg-pink-600 text-white w-full rounded-lg py-3 mt-10 hover:bg-pink-400">
               Reserve
             </button>
 
@@ -236,7 +245,11 @@ const PropertyDetails = () => {
               {data?.totalPrice ? data?.totalPrice + 120 : 0} total
             </div>
           </div>
-          <button className="bg-pink-600 text-white rounded-lg mr-4 p-2 hover:bg-pink-400">
+          <button
+            onClick={() =>
+              navigate('/book', { state: { propertyDetails: data } })
+            }
+            className="bg-pink-600 text-white rounded-lg mr-4 p-2 hover:bg-pink-400">
             Reserve
           </button>
         </div>
